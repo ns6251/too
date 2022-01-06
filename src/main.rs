@@ -8,7 +8,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
-pub struct Cli {
+struct Cli {
     /// Append to the given FILEs, do not overwrite
     #[clap(short, long)]
     pub append: bool,
@@ -29,7 +29,7 @@ pub struct Cli {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
-pub enum Mode {
+enum Mode {
     /// Diagnose errors writing to any output
     Warn,
 
