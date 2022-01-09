@@ -5,6 +5,7 @@ use clap::{ArgEnum, Parser};
 use futures::future::try_join_all;
 use regex::Regex;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::signal;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -52,6 +53,14 @@ fn decolorize(s: &str) -> Cow<str> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
+
+    if cli.ignore_interrupts {
+        tokio::spawn( async {
+            loop {
+                signal::ctrl_c().await.unwrap();
+            }
+        });
+    }
 
     let mut buf = String::new();
     let mut stdin = tokio::io::stdin();
