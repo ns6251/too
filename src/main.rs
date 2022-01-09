@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use clap::{ArgEnum, Parser};
 use futures::future::try_join_all;
 use regex::Regex;
+use tokio::fs::OpenOptions;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::signal;
 
@@ -44,7 +45,7 @@ enum Mode {
     ExitNopipe,
 }
 
-/// Remove ASCII
+/// Remove ANSI escape sequences
 fn decolorize(s: &str) -> Cow<str> {
     let re = Regex::new(r#"\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]"#).unwrap();
     re.replace_all(s, "")
@@ -55,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     if cli.ignore_interrupts {
-        tokio::spawn( async {
+        tokio::spawn(async {
             loop {
                 signal::ctrl_c().await.unwrap();
             }
@@ -71,11 +72,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let plain = decolorize(&buf);
 
-    let files = cli
-        .file
-        .iter()
-        .map(|file| tokio::fs::write(file, plain.as_ref()));
-    let files = try_join_all(files);
+    let mut option = OpenOptions::new();
+    option.create(true).write(true).append(cli.append).truncate(!cli.append);
+    let files = cli.file.iter().map(|file| option.open(file));
+    let mut files = try_join_all(files).await?;
+
+    let files = try_join_all(files.iter_mut().map(|file| file.write(plain.as_bytes())));
 
     tokio::try_join!(stdout, files)?;
 
