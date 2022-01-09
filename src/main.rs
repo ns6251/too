@@ -51,7 +51,7 @@ fn decolorize(s: &str) -> Cow<str> {
     re.replace_all(s, "")
 }
 
-async fn raed_from_stdin() -> io::Result<String> {
+async fn read_from_stdin() -> io::Result<String> {
     let mut buf = String::new();
     let mut stdin = tokio::io::stdin();
     stdin.read_to_string(&mut buf).await?;
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    let input = raed_from_stdin().await?;
+    let input = read_from_stdin().await?;
 
     let plain = decolorize(&input);
 
