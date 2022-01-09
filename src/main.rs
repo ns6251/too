@@ -1,11 +1,11 @@
 use std::borrow::Cow;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{ArgEnum, Parser};
 use futures::future::try_join_all;
 use regex::Regex;
 use tokio::fs::OpenOptions;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::signal;
 
 #[derive(Parser, Debug)]
@@ -51,6 +51,34 @@ fn decolorize(s: &str) -> Cow<str> {
     re.replace_all(s, "")
 }
 
+async fn raed_from_stdin() -> io::Result<String> {
+    let mut buf = String::new();
+    let mut stdin = tokio::io::stdin();
+    stdin.read_to_string(&mut buf).await?;
+    return Ok(buf);
+}
+
+async fn write_to_stdout(s: &str) -> io::Result<()> {
+    let mut stdout = tokio::io::stdout();
+    stdout.write(s.as_bytes()).await?;
+    Ok(())
+}
+
+async fn write_to_file(path: &Path, s: &str, append: bool) -> io::Result<()> {
+    let mut option = OpenOptions::new();
+    option
+        .create(true)
+        .write(true)
+        .append(append)
+        .truncate(!append)
+        .open(path)
+        .await?
+        .write(s.as_bytes())
+        .await?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
@@ -63,23 +91,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    let mut buf = String::new();
-    let mut stdin = tokio::io::stdin();
-    stdin.read_to_string(&mut buf).await?;
+    let input = raed_from_stdin().await?;
 
-    let mut stdout = tokio::io::stdout();
-    let stdout = stdout.write(buf.as_bytes());
+    let plain = decolorize(&input);
 
-    let plain = decolorize(&buf);
+    let files = cli
+        .file
+        .iter()
+        .map(|file| write_to_file(file, plain.as_ref(), cli.append));
+    let files = try_join_all(files);
 
-    let mut option = OpenOptions::new();
-    option.create(true).write(true).append(cli.append).truncate(!cli.append);
-    let files = cli.file.iter().map(|file| option.open(file));
-    let mut files = try_join_all(files).await?;
-
-    let files = try_join_all(files.iter_mut().map(|file| file.write(plain.as_bytes())));
-
-    tokio::try_join!(stdout, files)?;
+    tokio::try_join!(write_to_stdout(&input), files)?;
 
     Ok(())
 }
