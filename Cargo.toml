@@ -1,9 +1,12 @@
 [package]
 name = "too"
 version = "0.1.0"
+authors = ["Shota Nakagawa"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.57"
+license = "MIT"
+license-file = "LICENSE"
+repository = "https://github.com/ns6251/too/"
 
 [dependencies]
 clap = { version = "3.0", features = ["derive"]}
