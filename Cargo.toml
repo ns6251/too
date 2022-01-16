@@ -5,7 +5,6 @@ authors = ["Shota Nakagawa"]
 edition = "2021"
 rust-version = "1.57"
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/ns6251/too/"
 
 [dependencies]
