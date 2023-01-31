@@ -11,4 +11,4 @@ repository = "https://github.com/ns6251/too/"
 clap = { version = "3.0", features = ["derive"]}
 futures = "0.3"
 regex = "1.5"
-tokio = { version = "1.15", features = ["full"]}
+tokio = { version = "1.18", features = ["full"]}
